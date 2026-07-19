@@ -1,0 +1,23 @@
+[
+  {
+    "id": "genetics",
+    "name": "Genetics",
+    "slug": "genetics",
+    "icon": "🧬",
+    "description": "Premium liquid cultures, spore swabs, and genetic isolates for the serious collector and cultivator."
+  },
+  {
+    "id": "supplies",
+    "name": "Supplies",
+    "slug": "supplies",
+    "icon": "🔬",
+    "description": "Lab-grade agar plates, grain bags, AIO substrate bags, and all the essentials for clean mycology."
+  },
+  {
+    "id": "merch",
+    "name": "Merch",
+    "slug": "merch",
+    "icon": "👕",
+    "description": "Apparel, stickers, and accessories to rep the culture in style."
+  }
+]

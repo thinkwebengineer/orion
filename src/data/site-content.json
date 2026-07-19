@@ -1,0 +1,23 @@
+{
+  "hero": {
+    "title": "Golden Mycology",
+    "subtitle": "Premium Mycology Genetics & Supplies",
+    "ctaText": "Shop Now",
+    "ctaLink": "/shop"
+  },
+  "guarantees": [
+    { "icon": "🧫", "title": "Made Fresh", "description": "Cultures and plates made fresh to order" },
+    { "icon": "🌬️", "title": "Sterile & Clean", "description": "ISO 5 laminar flow environments" },
+    { "icon": "✅", "title": "Lab Tested", "description": "Every batch tested for viability" },
+    { "icon": "📦", "title": "Secure Packaging", "description": "Discreet, temperature-protected" }
+  ],
+  "shipping": {
+    "standard": "Ground shipping — $15 minimum. Ships fresh and fast.",
+    "expedited": "Contact us for expedited options.",
+    "freeThreshold": 100
+  },
+  "seo": {
+    "title": "Golden Mycology | Premium Mycology Genetics & Supplies",
+    "description": "Premium liquid cultures, spore swabs, agar plates, and mycology supplies. Made fresh to ensure quality."
+  }
+}
