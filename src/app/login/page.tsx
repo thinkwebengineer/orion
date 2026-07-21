@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +25,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/admin');
+    // Full page navigation so middleware picks up the new session cookies
+    window.location.href = '/admin';
   };
 
   return (
