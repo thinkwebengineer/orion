@@ -11,6 +11,7 @@ import {
   HiOutlineChevronDown,
   HiOutlineArrowRightOnRectangle,
   HiOutlineShieldCheck,
+  HiOutlineLockClosed,
 } from "react-icons/hi2";
 import {
   FaCcVisa,
@@ -21,6 +22,7 @@ import {
 } from "react-icons/fa";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV_LINKS: Array<{
   label: string;
@@ -103,6 +105,15 @@ export default function Header() {
     setProfileOpen(false);
     await signOut();
     window.location.href = "/";
+  };
+
+  const handleResetPassword = async () => {
+    setProfileOpen(false);
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(user?.email || "", {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    alert("Check your email for the reset link.");
   };
 
   return (
@@ -225,6 +236,13 @@ export default function Header() {
                           My Account
                         </Link>
                         <button
+                          onClick={handleResetPassword}
+                          className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+                        >
+                          <HiOutlineLockClosed className="h-4 w-4" />
+                          Reset Password
+                        </button>
+                        <button
                           onClick={handleSignOut}
                           className="flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                         >
@@ -336,6 +354,13 @@ export default function Header() {
                   <HiOutlineUser className="h-4 w-4" />
                   My Account
                 </Link>
+                <button
+                  onClick={() => { closeMobile(); handleResetPassword(); }}
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200 w-full transition-colors"
+                >
+                  <HiOutlineLockClosed className="h-4 w-4" />
+                  Reset Password
+                </button>
                 <button
                   onClick={() => { closeMobile(); signOut(); window.location.href = "/"; }}
                   className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-zinc-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
