@@ -2,32 +2,84 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 
-export default function LoginPage() {
-  const { signIn } = useAuth();
+export default function ForgotPasswordPage() {
+  const supabase = createClient();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    const { error: signInError } = await signIn(email, password);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
+    );
 
-    if (signInError) {
-      setError(signInError);
+    if (resetError) {
+      setError(resetError.message);
       setIsSubmitting(false);
       return;
     }
 
-    // Full page navigation so middleware picks up the new session cookies
-    window.location.href = '/admin';
+    setSent(true);
+    setIsSubmitting(false);
   };
+
+  // Success state
+  if (sent) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 gold-border-glow">
+            {/* Mail icon */}
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#FFD700] bg-zinc-900">
+              <svg
+                className="h-8 w-8 text-[#FFD700]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+
+            <h1 className="gold-glow mb-2 text-2xl font-bold text-[#FFD700]">
+              Check Your Email
+            </h1>
+            <p className="mb-2 text-sm text-zinc-300">
+              We&apos;ve sent a password reset link to{' '}
+              <span className="font-medium text-zinc-100">{email}</span>
+            </p>
+            <p className="mb-6 text-xs text-zinc-500">
+              Click the link in the email to reset your password. It expires in
+              one hour.
+            </p>
+
+            <Link
+              href="/login"
+              className="inline-block rounded-lg bg-[#FFD700] px-6 py-2.5 text-sm font-semibold text-black transition-all hover:bg-[#FFC000]"
+            >
+              Back to Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -35,10 +87,10 @@ export default function LoginPage() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="gold-glow text-3xl font-bold tracking-tight text-[#FFD700]">
-            Welcome Back
+            Reset Password
           </h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Sign in to your Golden Mycology account
+            Enter your email and we&apos;ll send you a reset link
           </p>
         </div>
 
@@ -64,35 +116,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-sm font-medium text-zinc-300"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-[#FFD700] focus:outline-none focus:ring-1 focus:ring-[#FFD700]"
-              />
-            </div>
-
-            {/* Forgot password link */}
-            <div className="text-right">
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-zinc-500 transition-colors hover:text-[#FFD700]"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
             {/* Error */}
             {error && (
               <div className="rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
@@ -106,7 +129,7 @@ export default function LoginPage() {
               disabled={isSubmitting}
               className="w-full rounded-lg bg-[#FFD700] px-4 py-2.5 text-sm font-semibold text-black transition-all hover:bg-[#FFC000] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? 'Signing in…' : 'Sign In'}
+              {isSubmitting ? 'Sending link…' : 'Send Reset Link'}
             </button>
           </form>
 
@@ -117,14 +140,14 @@ export default function LoginPage() {
             <div className="flex-1 border-t border-zinc-800" />
           </div>
 
-          {/* Register link */}
+          {/* Back to login */}
           <p className="text-center text-sm text-zinc-400">
-            Don&apos;t have an account?{' '}
+            Remember your password?{' '}
             <Link
-              href="/register"
+              href="/login"
               className="font-medium text-[#FFD700] transition-colors hover:text-[#FFC000]"
             >
-              Create one
+              Sign in
             </Link>
           </p>
         </div>
