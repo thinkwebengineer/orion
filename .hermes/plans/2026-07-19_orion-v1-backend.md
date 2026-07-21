@@ -306,8 +306,8 @@ Push to main → Vercel auto-deploys
 | Service | Plan | Cost |
 |---|---|---|
 | Vercel | Pro (or Hobby if traffic is low) | $0–$20/mo |
-| Supabase | Pro (10GB DB, 50GB bandwidth, auth) | $25/mo |
-| Domain | goldenmycology.com (Porkbun/Cloudflare) | ~$10/yr ($0.83/mo) |
+| Supabase | Pro (10GB DB, 50GB bandwidth, auth) | $25/mo (~€23) |
+| Domain | goldenmycology.com (Cloudflare) | €10.46/yr (~€0.87/mo) |
 | Resend | Transactional emails (free tier: 100/day) | $0/mo |
 | Stripe | 2.9% + $0.30 per transaction | Variable |
 | Coinbase Commerce | 0% fee on crypto payments | Free |

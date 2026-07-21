@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -34,6 +35,7 @@ export default function RootLayout({
         <AuthProvider>
           <Layout>{children}</Layout>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
