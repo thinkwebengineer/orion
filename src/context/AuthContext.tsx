@@ -60,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!error && data) {
         setProfile(data as Profile);
       } else {
-        if (error) console.error('fetchProfile error:', error.message, error)
         setProfile(null);
       }
     },
@@ -166,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, [supabase]);
 
-  const isAdmin = profile?.is_admin ?? false;
+  const isAdmin = (user?.app_metadata?.is_admin as boolean) ?? false;
 
   return (
     <AuthContext.Provider
