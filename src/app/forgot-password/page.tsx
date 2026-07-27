@@ -2,33 +2,24 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 
 export default function ForgotPasswordPage() {
-  const supabase = createClient();
-
   const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
     setIsSubmitting(true);
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      email,
-      {
-        redirectTo: `${window.location.origin}/reset-password`,
-      },
-    );
-
-    if (resetError) {
-      console.error('resetPasswordForEmail error:', resetError)
-      setError(resetError.message || JSON.stringify(resetError));
-      setIsSubmitting(false);
-      return;
+    try {
+      await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+    } catch {
+      // Don't reveal errors — always show "Check your email" for security
     }
 
     setSent(true);
@@ -116,13 +107,6 @@ export default function ForgotPasswordPage() {
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-[#FFD700] focus:outline-none focus:ring-1 focus:ring-[#FFD700]"
               />
             </div>
-
-            {/* Error */}
-            {error && (
-              <div className="rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
-                {error}
-              </div>
-            )}
 
             {/* Submit */}
             <button

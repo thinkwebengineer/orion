@@ -59,6 +59,24 @@ export async function sendShippingUpdate(params: {
   })
 }
 
+export async function sendPasswordResetEmail(params: {
+  email: string
+  resetUrl: string
+}) {
+  await resend.emails.send({
+    from: 'Golden Mycology <noreply@goldenmycology.com>',
+    to: params.email,
+    subject: 'Reset your Golden Mycology password',
+    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <h1 style="color:#FFD700;">Reset your password</h1>
+      <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+      <a href="${escapeHtml(params.resetUrl)}" style="display:inline-block;background:#FFD700;color:black;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0;">Reset Password</a>
+      <p style="color:#666;font-size:12px">If you didn't request this, ignore this email.</p>
+      <p style="color:#666;font-size:12px">Golden Mycology — goldenmycology.com</p>
+    </div>`,
+  })
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')

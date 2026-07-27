@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, FormEvent, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -15,47 +16,35 @@ export default function ResetPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  // Let Supabase Auth process the recovery token from the URL hash
-  // Supabase stores the session after processing the hash fragment
   useEffect(() => {
     const init = async () => {
-      const hash = window.location.hash;
-      if (!hash) {
+      const token_hash = searchParams.get('token_hash');
+      const type = searchParams.get('type');
+
+      if (!token_hash || !type) {
         setError('Invalid or expired reset link. Please request a new one.');
         return;
       }
 
-      // Parse the hash for the access_token
-      const params = new URLSearchParams(hash.replace('#', ''));
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-
-      if (!accessToken) {
-        setError('Invalid or expired reset link. Please request a new one.');
-        return;
-      }
-
-      // Explicitly set the session from the recovery token
-      // This tells Supabase this is a valid recovery flow
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken || '',
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        type: type as 'recovery',
+        token_hash,
       });
 
-      if (sessionError) {
-        console.error('setSession error:', sessionError);
+      if (verifyError) {
+        console.error('verifyOtp error:', verifyError);
         setError('Invalid or expired reset link. Please request a new one.');
         return;
       }
 
-      // Clear the hash from the URL so refreshing doesn't re-process it
+      // Clear the query params from the URL so refreshing doesn't re-process
       window.history.replaceState(null, '', '/reset-password');
 
       setIsReady(true);
     };
 
     init();
-  }, [supabase]);
+  }, [searchParams, supabase]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -227,5 +216,21 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 gold-border-glow">
+            <p className="text-sm text-zinc-400">Loading…</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
