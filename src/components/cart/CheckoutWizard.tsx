@@ -19,9 +19,12 @@ import {
   HiOutlineTruck,
   HiOutlineCreditCard,
   HiOutlineDocumentText,
+  HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 
 type Step = 1 | 2 | 3 | 4;
+
+type OrderStatus = 'idle' | 'submitting' | 'completed' | 'error';
 
 interface StepConfig {
   step: Step;
@@ -46,10 +49,10 @@ export default function CheckoutWizard() {
   const [paymentData, setPaymentData] = useState<PaymentData>(
     DEFAULT_PAYMENT_DATA,
   );
-  const [orderCompleted, setOrderCompleted] = useState(false);
-  const [orderJson, setOrderJson] = useState<Record<string, unknown> | null>(
-    null,
-  );
+  const [orderStatus, setOrderStatus] = useState<OrderStatus>('idle');
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderEmail, setOrderEmail] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const EXPEDITED_COST = 12.99;
 
@@ -89,56 +92,78 @@ export default function CheckoutWizard() {
     setCurrentStep(target);
   };
 
-  const handleComplete = () => {
-    // Build the full order JSON
+  const handleComplete = async () => {
+    setOrderStatus('submitting');
+    setErrorMessage(null);
+
     const shippingCost =
       shippingData.shippingMethod === 'expedited' ? EXPEDITED_COST : 0;
     const total = subtotal + shippingCost;
 
-    const order: Record<string, unknown> = {
-      orderId: Math.floor(10000000 + Math.random() * 90000000).toString(),
-      timestamp: new Date().toISOString(),
-      items: items.map((item) => ({
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        variant: item.variantLabel ?? null,
-      })),
-      shipping: {
-        email: shippingData.email,
-        firstName: shippingData.firstName,
-        lastName: shippingData.lastName,
-        streetAddress: shippingData.streetAddress,
-        aptUnit: shippingData.aptUnit || null,
-        city: shippingData.city,
-        state: shippingData.state,
-        zip: shippingData.zip,
-        method: shippingData.shippingMethod,
-      },
-      payment: {
-        method: 'credit_card',
-        lastFour: paymentData.cardNumber.slice(-4) || '****',
-        cardholderName: paymentData.nameOnCard,
-      },
-      subtotal,
-      shippingCost,
-      total,
-    };
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            variant: item.variantLabel ?? null,
+          })),
+          shipping: {
+            email: shippingData.email,
+            firstName: shippingData.firstName,
+            lastName: shippingData.lastName,
+            streetAddress: shippingData.streetAddress,
+            aptUnit: shippingData.aptUnit || undefined,
+            city: shippingData.city,
+            state: shippingData.state,
+            zip: shippingData.zip,
+            shippingMethod: shippingData.shippingMethod,
+          },
+          subtotal,
+          shipping_cost: shippingCost,
+          total,
+          payment_method:
+            paymentData.method === 'card'
+              ? 'credit_card'
+              : paymentData.method === 'crypto'
+                ? 'crypto'
+                : 'bank_transfer',
+        }),
+      });
 
-    setOrderJson(order);
-    completeStep(4);
-    setOrderCompleted(true);
-    clearCart();
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(
+          body.error || `Server error (${response.status})`,
+        );
+      }
+
+      const result = await response.json();
+
+      setOrderId(result.order_id);
+      setOrderEmail(shippingData.email);
+      completeStep(4);
+      setOrderStatus('completed');
+      clearCart();
+    } catch (err) {
+      setOrderStatus('error');
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Something went wrong. Please try again.',
+      );
+    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────
 
   // If order is completed, show confirmation instead of wizard
-  if (orderCompleted && orderJson) {
+  if (orderStatus === 'completed' && orderId && orderEmail) {
     return (
       <div className="mx-auto max-w-2xl">
-        <OrderConfirmation orderJson={orderJson} />
+        <OrderConfirmation orderId={orderId} email={orderEmail} />
       </div>
     );
   }
@@ -151,8 +176,6 @@ export default function CheckoutWizard() {
           {STEPS.map((s, index) => {
             const isCompleted = completedSteps.has(s.step);
             const isCurrent = currentStep === s.step;
-            const isFuture =
-              !completedSteps.has(s.step) && currentStep !== s.step;
             const canClick = completedSteps.has(s.step);
             const Icon = s.icon;
 
@@ -213,6 +236,27 @@ export default function CheckoutWizard() {
         </ol>
       </nav>
 
+      {/* Error banner */}
+      {orderStatus === 'error' && errorMessage && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-800/50 bg-red-900/20 p-4">
+          <HiOutlineExclamationTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-400">Order failed</p>
+            <p className="mt-0.5 text-sm text-red-300">{errorMessage}</p>
+            <p className="mt-1 text-xs text-red-400/70">
+              Your cart items are still saved. Please try again.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOrderStatus('idle')}
+            className="rounded-lg border border-red-800/50 px-3 py-1 text-xs text-red-400 transition-colors hover:border-red-700 hover:text-red-300"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Step content */}
       <div>
         {currentStep === 1 && <CartReview onNext={handleCartNext} />}
@@ -244,6 +288,21 @@ export default function CheckoutWizard() {
           />
         )}
       </div>
+
+      {/* Loading overlay */}
+      {orderStatus === 'submitting' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-8 text-center shadow-2xl">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-amber-400" />
+            <p className="text-sm font-medium text-zinc-100">
+              Placing your order…
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Please don&apos;t close this page.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

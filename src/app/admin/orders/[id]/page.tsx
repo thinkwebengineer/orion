@@ -74,6 +74,7 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [resending, setResending] = useState(false)
   const [orderId, setOrderId] = useState<string>('')
 
   // Editable fields
@@ -156,6 +157,32 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleResendConfirmation() {
+    if (!order) return
+    setResending(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: order.id, resend_confirmation: true }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to resend confirmation')
+      }
+
+      setSuccess('Confirmation email resent')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -328,20 +355,39 @@ export default function AdminOrderDetail({ params }: { params: Promise<{ id: str
           </div>
 
           {/* Save button */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-[#FFD700] text-black font-medium text-sm hover:bg-[#FFD700]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {saving ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                Saving...
-              </>
-            ) : (
-              'Save Changes'
-            )}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-6 py-2.5 rounded-lg bg-[#FFD700] text-black font-medium text-sm hover:bg-[#FFD700]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+            <button
+              onClick={handleResendConfirmation}
+              disabled={resending}
+              className="px-6 py-2.5 rounded-lg border border-zinc-700 text-zinc-300 font-medium text-sm hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {resending ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
+                  Resending...
+                </>
+              ) : (
+                <>
+                  <HiOutlineEnvelope className="h-4 w-4" />
+                  Resend Confirmation
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Right column — customer & payment */}

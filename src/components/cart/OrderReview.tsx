@@ -19,15 +19,9 @@ function formatPrice(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
-function maskCardNumber(raw: string): string {
-  if (!raw) return '****';
-  const last4 = raw.replace(/\D/g, '').slice(-4);
-  return `****${last4}`;
-}
-
 function getShippingCost(method: 'standard' | 'expedited', subtotal: number): number {
   if (method === 'standard' && subtotal >= FREE_THRESHOLD) return 0;
-  if (method === 'standard') return 0; // Standard is always free for orders of any amount per the shipping config
+  if (method === 'standard') return 0; // Standard is always free
   return EXPEDITED_COST;
 }
 
@@ -43,6 +37,19 @@ function formatAddress(shipping: ShippingData): string {
   const cityState = [shipping.city, shipping.state].filter(Boolean).join(', ');
   const zip = shipping.zip || '';
   return [parts, addr, `${cityState} ${zip}`.trim()].filter(Boolean).join('\n');
+}
+
+function getPaymentMethodLabel(method: PaymentData['method']): string {
+  switch (method) {
+    case 'card':
+      return 'Credit / Debit Card';
+    case 'crypto':
+      return 'Cryptocurrency';
+    case 'bank_transfer':
+      return 'Bank Transfer';
+    default:
+      return method;
+  }
 }
 
 export default function OrderReview({
@@ -132,11 +139,13 @@ export default function OrderReview({
           Payment Method
         </h3>
         <p className="text-sm text-zinc-100">
-          Credit/Debit Card ending in{' '}
-          <span className="font-mono text-amber-400">
-            {maskCardNumber(payment.cardNumber)}
-          </span>
+          {getPaymentMethodLabel(payment.method)}
         </p>
+        {payment.nameOnOrder && (
+          <p className="mt-1 text-sm text-zinc-400">
+            Name on order: {payment.nameOnOrder}
+          </p>
+        )}
       </div>
 
       {/* Actions */}

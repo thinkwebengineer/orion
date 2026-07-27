@@ -3,11 +3,8 @@
 import { useState } from 'react';
 
 export interface PaymentData {
-  method: 'card';
-  cardNumber: string;
-  nameOnCard: string;
-  expiry: string;
-  cvv: string;
+  method: 'card' | 'crypto' | 'bank_transfer';
+  nameOnOrder: string;
 }
 
 interface PaymentFormProps {
@@ -17,12 +14,30 @@ interface PaymentFormProps {
   onNext: () => void;
 }
 
+const PAYMENT_OPTIONS = [
+  {
+    value: 'card' as const,
+    label: 'Pay with card',
+    sublabel: 'Stripe — coming soon',
+    disabled: false,
+  },
+  {
+    value: 'crypto' as const,
+    label: 'Pay with crypto',
+    sublabel: 'Bitcoin, Ethereum & more — coming soon',
+    disabled: true,
+  },
+  {
+    value: 'bank_transfer' as const,
+    label: 'Pay by bank transfer',
+    sublabel: 'Direct bank deposit — coming soon',
+    disabled: true,
+  },
+];
+
 export const DEFAULT_PAYMENT_DATA: PaymentData = {
   method: 'card',
-  cardNumber: '',
-  nameOnCard: '',
-  expiry: '',
-  cvv: '',
+  nameOnOrder: '',
 };
 
 export default function PaymentForm({
@@ -52,31 +67,6 @@ export default function PaymentForm({
     return `${base} ${focusRing}`;
   };
 
-  const formatCardNumber = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 16);
-    const groups = digits.match(/.{1,4}/g);
-    return groups ? groups.join(' ') : digits;
-  };
-
-  const handleCardNumberChange = (value: string) => {
-    const rawDigits = value.replace(/\D/g, '').slice(0, 16);
-    onChange({ ...data, cardNumber: rawDigits });
-  };
-
-  const handleExpiryChange = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 4);
-    let formatted = digits;
-    if (digits.length >= 3) {
-      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    }
-    onChange({ ...data, expiry: formatted });
-  };
-
-  const handleCvvChange = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 4);
-    onChange({ ...data, cvv: digits });
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <h2 className="text-2xl font-bold text-zinc-100">Payment</h2>
@@ -86,143 +76,79 @@ export default function PaymentForm({
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-400">
           Payment Method
         </h3>
-        <div className="flex flex-wrap gap-3">
-          {/* Credit/Debit Card - active */}
-          <div className="flex cursor-pointer items-center gap-3 rounded-lg border border-amber-400/50 bg-amber-400/5 px-4 py-3">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-amber-400">
-              <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-            </div>
-            <div>
-              <span className="text-sm font-medium text-zinc-100">
-                Credit / Debit Card
-              </span>
-              <div className="mt-0.5 flex gap-1 text-xs text-zinc-500">
-                <span>Visa</span>
-                <span className="text-zinc-700">|</span>
-                <span>MC</span>
-                <span className="text-zinc-700">|</span>
-                <span>Amex</span>
-                <span className="text-zinc-700">|</span>
-                <span>Discover</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Apple Pay - visual only */}
-          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-800/30 px-4 py-3 opacity-60">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-zinc-600">
-              <div className="h-2.5 w-2.5 rounded-full bg-transparent" />
-            </div>
-            <div>
-              <span className="text-sm font-medium text-zinc-400">
-                Apple Pay
-              </span>
-              <p className="text-xs text-zinc-600">Coming soon</p>
-            </div>
-          </div>
-
-          {/* Google Pay - visual only */}
-          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-800/30 px-4 py-3 opacity-60">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-zinc-600">
-              <div className="h-2.5 w-2.5 rounded-full bg-transparent" />
-            </div>
-            <div>
-              <span className="text-sm font-medium text-zinc-400">
-                Google Pay
-              </span>
-              <p className="text-xs text-zinc-600">Coming soon</p>
-            </div>
-          </div>
+        <div className="space-y-3">
+          {PAYMENT_OPTIONS.map((option) => {
+            const isSelected = data.method === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex cursor-pointer items-start gap-4 rounded-lg border p-4 transition-colors ${
+                  isSelected
+                    ? 'border-amber-400/50 bg-amber-400/5'
+                    : option.disabled
+                      ? 'border-zinc-700 bg-zinc-800/30 opacity-60'
+                      : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={option.value}
+                  checked={isSelected}
+                  onChange={() => update('method', option.value)}
+                  disabled={option.disabled}
+                  className="mt-0.5 h-4 w-4 accent-amber-400"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`font-medium ${
+                        option.disabled ? 'text-zinc-400' : 'text-zinc-100'
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                    {option.disabled && (
+                      <span className="text-xs text-zinc-500">Coming soon</span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-sm text-zinc-400">
+                    {option.sublabel}
+                  </p>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
 
-      {/* Card details */}
+      {/* Name on Order */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-400">
-          Card Details
+          Order Details
         </h3>
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="payment-cardNumber"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
-            >
-              Card Number
-            </label>
-            <input
-              id="payment-cardNumber"
-              type="text"
-              inputMode="numeric"
-              value={formatCardNumber(data.cardNumber)}
-              onChange={(e) => handleCardNumberChange(e.target.value)}
-              onFocus={() => setFocusedField('cardNumber')}
-              onBlur={() => setFocusedField(null)}
-              placeholder="1234 5678 9012 3456"
-              className={inputClass('cardNumber')}
-              autoComplete="cc-number"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="payment-nameOnCard"
-              className="mb-1.5 block text-sm font-medium text-zinc-300"
-            >
-              Name on Card
-            </label>
-            <input
-              id="payment-nameOnCard"
-              type="text"
-              value={data.nameOnCard}
-              onChange={(e) => update('nameOnCard', e.target.value)}
-              onFocus={() => setFocusedField('nameOnCard')}
-              onBlur={() => setFocusedField(null)}
-              placeholder="John Appleseed"
-              className={inputClass('nameOnCard')}
-              autoComplete="cc-name"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="payment-expiry"
-                className="mb-1.5 block text-sm font-medium text-zinc-300"
-              >
-                Expiry (MM/YY)
-              </label>
-              <input
-                id="payment-expiry"
-                type="text"
-                inputMode="numeric"
-                value={data.expiry}
-                onChange={(e) => handleExpiryChange(e.target.value)}
-                onFocus={() => setFocusedField('expiry')}
-                onBlur={() => setFocusedField(null)}
-                placeholder="MM/YY"
-                className={inputClass('expiry')}
-                autoComplete="cc-exp"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="payment-cvv"
-                className="mb-1.5 block text-sm font-medium text-zinc-300"
-              >
-                CVV
-              </label>
-              <input
-                id="payment-cvv"
-                type="password"
-                inputMode="numeric"
-                value={data.cvv}
-                onChange={(e) => handleCvvChange(e.target.value)}
-                onFocus={() => setFocusedField('cvv')}
-                onBlur={() => setFocusedField(null)}
-                placeholder="123"
-                className={inputClass('cvv')}
-                autoComplete="cc-csc"
-              />
-            </div>
-          </div>
+        <div>
+          <label
+            htmlFor="payment-nameOnOrder"
+            className="mb-1.5 block text-sm font-medium text-zinc-300"
+          >
+            Name on Order
+          </label>
+          <input
+            id="payment-nameOnOrder"
+            type="text"
+            value={data.nameOnOrder}
+            onChange={(e) => update('nameOnOrder', e.target.value)}
+            onFocus={() => setFocusedField('nameOnOrder')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="John Appleseed"
+            className={inputClass('nameOnOrder')}
+            autoComplete="name"
+          />
+          <p className="mt-1.5 text-xs text-zinc-500">
+            We don&apos;t process real payments yet. Your order will be
+            confirmed and we&apos;ll follow up with payment instructions.
+          </p>
         </div>
       </div>
 

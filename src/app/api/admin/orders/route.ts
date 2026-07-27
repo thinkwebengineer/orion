@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendOrderConfirmation, sendShippingUpdate } from '@/lib/email'
 
 /**
  * GET /api/admin/orders
@@ -44,17 +45,32 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH /api/admin/orders
  *
- * Body: { id, fulfillment_status?, tracking_number?, notes?, payment_status? }
+ * Body: { id, fulfillment_status?, tracking_number?, notes?, payment_status?, resend_confirmation? }
  *
  * Updates a single order's fields. Only provided fields are changed.
+ * Fires transactional emails in the background:
+ *   - Shipping update when fulfillment_status='shipped' and tracking_number is set
+ *   - Resend confirmation when resend_confirmation=true
  */
 export async function PATCH(request: NextRequest) {
   const body = await request.json()
-  const { id, fulfillment_status, tracking_number, notes, payment_status } = body
+  const { id, fulfillment_status, tracking_number, notes, payment_status, resend_confirmation } = body
 
   if (!id) return NextResponse.json({ error: 'Order ID required' }, { status: 400 })
 
   const supabase = createAdminClient()
+
+  // Fetch the current order so we have email/shipping_name/items for email dispatch
+  const { data: existing, error: fetchError } = await supabase
+    .from('orders')
+    .select('email, shipping_name, items, fulfillment_status, tracking_number')
+    .eq('id', id)
+    .single()
+
+  if (fetchError) {
+    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+  }
+
   const updates: Record<string, unknown> = {}
   if (fulfillment_status !== undefined) updates.fulfillment_status = fulfillment_status
   if (tracking_number !== undefined) updates.tracking_number = tracking_number
@@ -64,6 +80,46 @@ export async function PATCH(request: NextRequest) {
 
   const { error } = await supabase.from('orders').update(updates).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // ── Background email dispatch ──────────────────────────────────────────
+
+  const resolvedStatus = fulfillment_status ?? existing.fulfillment_status
+  const resolvedTracking = tracking_number ?? existing.tracking_number
+
+  // Shipping update: status changed to 'shipped' AND tracking is now set
+  if (
+    resolvedStatus === 'shipped' &&
+    resolvedTracking &&
+    resolvedTracking.length > 0 &&
+    fulfillment_status !== undefined
+  ) {
+    const nameParts = (existing.shipping_name || '').split(' ')
+    const firstName = nameParts[0] || existing.shipping_name
+    sendShippingUpdate({
+      email: existing.email,
+      orderId: id,
+      trackingNumber: resolvedTracking,
+      shippingName: firstName,
+    }).catch((err: unknown) => {
+      console.error('Failed to send shipping update email:', err)
+    })
+  }
+
+  // Resend confirmation button in admin
+  if (resend_confirmation === true) {
+    const items = (existing.items || []) as { name?: string; quantity?: number; price?: number }[]
+    const nameParts = (existing.shipping_name || '').split(' ')
+    const firstName = nameParts[0] || existing.shipping_name
+    const lastName = nameParts.slice(1).join(' ') || ''
+    sendOrderConfirmation({
+      email: existing.email,
+      orderId: id,
+      items,
+      shipping: { firstName, lastName },
+    }).catch((err: unknown) => {
+      console.error('Failed to resend order confirmation email:', err)
+    })
+  }
 
   return NextResponse.json({ success: true })
 }

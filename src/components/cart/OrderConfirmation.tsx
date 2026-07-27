@@ -4,17 +4,16 @@ import Link from 'next/link';
 import { HiOutlineShoppingBag } from 'react-icons/hi2';
 
 interface OrderConfirmationProps {
-  orderJson: Record<string, unknown>;
-}
-
-function generateOrderNumber(): string {
-  return Math.floor(10000000 + Math.random() * 90000000).toString();
+  orderId: string;
+  email: string;
 }
 
 export default function OrderConfirmation({
-  orderJson,
+  orderId,
+  email,
 }: OrderConfirmationProps) {
-  const orderNumber = generateOrderNumber();
+  // Use first 8 chars of the UUID for a short display ID
+  const shortId = orderId.slice(0, 8);
   const estimatedDelivery = 'Estimated delivery: 3-5 business days';
 
   return (
@@ -48,21 +47,31 @@ export default function OrderConfirmation({
           Order Number
         </p>
         <p className="mt-1 text-2xl font-mono font-bold text-amber-400">
-          #{orderNumber}
+          #{shortId}
         </p>
         <p className="mt-3 text-sm text-zinc-400">{estimatedDelivery}</p>
       </div>
 
-      {/* Styled JSON blob */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-5">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400">
-          Order Details
-        </h3>
-        <pre className="overflow-x-auto rounded-lg bg-black/60 p-4 text-xs leading-relaxed">
-          <code className="text-zinc-300">
-            {JSON.stringify(orderJson, null, 2)}
-          </code>
-        </pre>
+      {/* Email confirmation */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-center">
+        <p className="text-sm text-zinc-400">
+          We&apos;ll email your confirmation to{' '}
+          <span className="font-medium text-zinc-100">{email}</span>
+        </p>
+      </div>
+
+      {/* Account prompt for guests */}
+      <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-5 text-center">
+        <p className="text-sm text-zinc-300">
+          Create an account to track your orders and save your shipping details
+          for next time.
+        </p>
+        <Link
+          href="/register"
+          className="mt-3 inline-block text-sm font-medium text-amber-400 underline underline-offset-2 transition-colors hover:text-amber-300"
+        >
+          Create an Account
+        </Link>
       </div>
 
       {/* Action */}

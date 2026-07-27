@@ -3,18 +3,20 @@
 import { useState } from "react";
 import type { Product } from "@/types/product";
 import siteContent from "@/data/site-content.json";
+import Reviews from "@/components/product/Reviews";
 
 interface Props {
   product: Product;
 }
 
-type TabId = "description" | "specs" | "shipping" | "faq";
+type TabId = "description" | "specs" | "shipping" | "faq" | "reviews";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "description", label: "Description" },
   { id: "specs", label: "Specifications" },
   { id: "shipping", label: "Shipping" },
   { id: "faq", label: "FAQ" },
+  { id: "reviews", label: "Reviews" },
 ];
 
 const shipping = siteContent.shipping;
@@ -59,7 +61,9 @@ export default function ProductTabs({ product }: Props) {
                 : "text-neutral-500 hover:text-neutral-300"
             }`}
           >
-            {tab.label}
+            {tab.id === "reviews"
+              ? `Reviews (${product.reviewCount})`
+              : tab.label}
             {activeTab === tab.id && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
             )}
@@ -156,6 +160,10 @@ export default function ProductTabs({ product }: Props) {
               </details>
             ))}
           </div>
+        )}
+
+        {activeTab === "reviews" && (
+          <Reviews productId={product.id} />
         )}
       </div>
     </div>
