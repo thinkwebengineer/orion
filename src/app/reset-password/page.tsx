@@ -9,38 +9,58 @@ export default function ResetPasswordPage() {
   const supabase = createClient();
   const router = useRouter();
 
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
-  // Parse the access_token from the URL hash on mount
+  // Let Supabase Auth process the recovery token from the URL hash
+  // Supabase stores the session after processing the hash fragment
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) {
-      setError('Invalid or expired reset link. Please request a new one.');
-      return;
-    }
+    const init = async () => {
+      const hash = window.location.hash;
+      if (!hash) {
+        setError('Invalid or expired reset link. Please request a new one.');
+        return;
+      }
 
-    const params = new URLSearchParams(hash.replace('#', ''));
-    const token = params.get('access_token');
+      // Parse the hash for the access_token
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
 
-    if (!token) {
-      setError('Invalid or expired reset link. Please request a new one.');
-      return;
-    }
+      if (!accessToken) {
+        setError('Invalid or expired reset link. Please request a new one.');
+        return;
+      }
 
-    setAccessToken(token);
-    setIsReady(true);
-  }, []);
+      // Explicitly set the session from the recovery token
+      // This tells Supabase this is a valid recovery flow
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || '',
+      });
+
+      if (sessionError) {
+        console.error('setSession error:', sessionError);
+        setError('Invalid or expired reset link. Please request a new one.');
+        return;
+      }
+
+      // Clear the hash from the URL so refreshing doesn't re-process it
+      window.history.replaceState(null, '', '/reset-password');
+
+      setIsReady(true);
+    };
+
+    init();
+  }, [supabase]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Client-side validation
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -81,12 +101,11 @@ export default function ResetPasswordPage() {
   }
 
   // Error state (invalid token)
-  if (error && !accessToken) {
+  if (error) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4">
         <div className="w-full max-w-md text-center">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 gold-border-glow">
-            {/* Error icon */}
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-red-500 bg-zinc-900">
               <svg
                 className="h-8 w-8 text-red-400"
@@ -103,9 +122,7 @@ export default function ResetPasswordPage() {
               </svg>
             </div>
 
-            <h1 className="mb-2 text-2xl font-bold text-red-400">
-              Invalid Link
-            </h1>
+            <h1 className="mb-2 text-2xl font-bold text-red-400">Invalid Link</h1>
             <p className="mb-6 text-sm text-zinc-400">{error}</p>
 
             <Link
@@ -123,7 +140,6 @@ export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="gold-glow text-3xl font-bold tracking-tight text-[#FFD700]">
             Set New Password
@@ -133,10 +149,8 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 gold-border-glow">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* New Password */}
             <div>
               <label
                 htmlFor="password"
@@ -156,7 +170,6 @@ export default function ResetPasswordPage() {
               />
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label
                 htmlFor="confirmPassword"
@@ -175,21 +188,18 @@ export default function ResetPasswordPage() {
               />
             </div>
 
-            {/* Validation hint */}
             {password && confirmPassword && password !== confirmPassword && (
               <div className="rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
                 Passwords do not match
               </div>
             )}
 
-            {/* Error */}
             {error && (
               <div className="rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
                 {error}
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -199,14 +209,12 @@ export default function ResetPasswordPage() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="flex-1 border-t border-zinc-800" />
             <span className="text-xs text-zinc-500">OR</span>
             <div className="flex-1 border-t border-zinc-800" />
           </div>
 
-          {/* Back to login */}
           <p className="text-center text-sm text-zinc-400">
             Remember your password?{' '}
             <Link
