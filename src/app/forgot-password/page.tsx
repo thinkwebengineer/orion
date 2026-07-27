@@ -1,25 +1,33 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsSubmitting(true);
 
-    try {
-      await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-    } catch {
-      // Don't reveal errors — always show "Check your email" for security
+    const supabase = createClient();
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
+    );
+
+    if (resetError) {
+      console.error('resetPasswordForEmail error:', resetError);
+      setError(resetError.message);
+      setIsSubmitting(false);
+      return;
     }
 
     setSent(true);
@@ -32,7 +40,6 @@ export default function ForgotPasswordPage() {
       <div className="flex min-h-[60vh] items-center justify-center px-4">
         <div className="w-full max-w-md text-center">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 gold-border-glow">
-            {/* Mail icon */}
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#FFD700] bg-zinc-900">
               <svg
                 className="h-8 w-8 text-[#FFD700]"
@@ -76,7 +83,6 @@ export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="gold-glow text-3xl font-bold tracking-tight text-[#FFD700]">
             Reset Password
@@ -86,10 +92,14 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 gold-border-glow">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
+            {error && (
+              <div className="rounded-lg border border-red-900/50 bg-red-900/20 px-4 py-3 text-sm text-red-400">
+                {error}
+              </div>
+            )}
+
             <div>
               <label
                 htmlFor="email"
@@ -108,7 +118,6 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -118,14 +127,12 @@ export default function ForgotPasswordPage() {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="flex-1 border-t border-zinc-800" />
             <span className="text-xs text-zinc-500">OR</span>
             <div className="flex-1 border-t border-zinc-800" />
           </div>
 
-          {/* Back to login */}
           <p className="text-center text-sm text-zinc-400">
             Remember your password?{' '}
             <Link
