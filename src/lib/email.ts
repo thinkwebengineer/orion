@@ -64,7 +64,7 @@ export async function sendPasswordResetEmail(params: {
   resetUrl: string
 }) {
   await resend.emails.send({
-    from: 'Golden Mycology <delivered@resend.dev>',
+    from: 'Golden Mycology <noreply@goldenmycology.com>',
     to: params.email,
     subject: 'Reset your Golden Mycology password',
     html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">

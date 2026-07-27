@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json()
 
     if (!email || typeof email !== 'string') {
-      // Don't reveal validation details — always return success
       return NextResponse.json({ success: true })
     }
 
@@ -19,14 +18,27 @@ export async function POST(request: NextRequest) {
     })
 
     if (error || !data?.properties?.action_link) {
-      // Don't reveal whether the email exists
       console.error('generateLink error:', error)
       return NextResponse.json({ success: true })
     }
 
-    // Fire-and-forget the email — don't block on it
-    const resetUrl = data.properties.action_link
+    // The action_link is a Supabase auth URL like:
+    // https://project.supabase.co/auth/v1/verify?token=pkce_xxx&type=recovery&redirect_to=...
+    // Extract the token and construct our own direct URL
+    const actionLink = data.properties.action_link
+    const url = new URL(actionLink)
+    const token = url.searchParams.get('token')
 
+    if (!token) {
+      console.error('No token in action_link:', actionLink)
+      return NextResponse.json({ success: true })
+    }
+
+    // Build a direct URL to our reset-password page with the token_hash
+    const origin = request.headers.get('origin') || 'https://orion-blue-psi.vercel.app'
+    const resetUrl = `${origin}/reset-password?token_hash=${encodeURIComponent(token)}&type=recovery`
+
+    // Fire-and-forget the email
     sendPasswordResetEmail({ email, resetUrl }).catch((err) => {
       console.error('sendPasswordResetEmail failed:', err)
     })
