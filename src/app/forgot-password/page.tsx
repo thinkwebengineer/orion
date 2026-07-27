@@ -25,7 +25,8 @@ export default function ForgotPasswordPage() {
     );
 
     if (resetError) {
-      setError(resetError.message);
+      console.error('resetPasswordForEmail error:', resetError)
+      setError(resetError.message || JSON.stringify(resetError));
       setIsSubmitting(false);
       return;
     }
