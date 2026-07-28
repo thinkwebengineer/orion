@@ -1,11 +1,10 @@
 import ComingSoon from '@/app/coming-soon/page';
 import ShopPage from '@/app/shop/page';
-import { headers } from 'next/headers';
 
-export default async function RootPage() {
-  const headersList = await headers();
-  const host = headersList.get('host') ?? '';
-  // Preview deployments are on *.vercel.app, production on custom domain
-  const isPreview = host.endsWith('.vercel.app') && !host.includes('goldenmycology.com');
-  return isPreview ? <ShopPage /> : <ComingSoon />;
+export default function RootPage() {
+  // Vercel-native env check: preview deployments show the shop, production shows coming soon
+  if (process.env.VERCEL_ENV === 'preview') {
+    return <ShopPage />;
+  }
+  return <ComingSoon />;
 }
