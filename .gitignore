@@ -6,5 +6,5 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .hermes
-.vercel
+.vercel*
 .env*
