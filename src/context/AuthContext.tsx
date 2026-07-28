@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, [supabase]);
 
-  const isAdmin = (user?.app_metadata?.is_admin as boolean) ?? false;
+  const isAdmin = profile?.is_admin ?? false;
 
   return (
     <AuthContext.Provider
