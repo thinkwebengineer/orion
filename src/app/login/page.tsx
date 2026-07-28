@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -25,8 +26,32 @@ export default function LoginPage() {
       return;
     }
 
-    // Full page navigation so middleware picks up the new session cookies
-    window.location.href = '/admin';
+    // Check for redirect target: query param, then referrer, then role-based default
+    const params = new URLSearchParams(window.location.search);
+    const redirectTo = params.get('redirectTo') || params.get('next');
+
+    if (redirectTo && redirectTo.startsWith('/')) {
+      window.location.href = redirectTo;
+      return;
+    }
+
+    // Default: admin if user is admin, otherwise store
+    const sb = createClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      const { data: profile } = await sb
+        .from('user_profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.is_admin) {
+        window.location.href = '/admin';
+        return;
+      }
+    }
+
+    window.location.href = '/shop';
   };
 
   return (
