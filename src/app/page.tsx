@@ -1,4 +1,4 @@
-import ComingSoon from '@/components/coming-soon';
+import ComingSoon from '@/app/coming-soon/page';
 import ShopPage from '@/app/shop/page';
 
 export default function RootPage() {
