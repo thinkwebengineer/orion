@@ -16,16 +16,30 @@ export default function ResetPasswordPage() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    // Subscribe to auth state BEFORE checking — catches auto-exchanged PKCE codes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setIsReady(true);
+      }
+    });
+
+    // Check for token in various formats
     const init = async () => {
-      // Check for token in either format:
-      // 1. hash fragment (#access_token=xxx) — from Supabase redirect after PKCE
-      // 2. query params (?token_hash=xxx) — from direct link
+      // 1. PKCE code exchange — @supabase/ssr handles this automatically,
+      //    wait for the session to be ready
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.history.replaceState(null, '', '/reset-password');
+        setIsReady(true);
+        return;
+      }
+
+      // 2. hash fragment (#access_token=xxx) — implicit flow fallback
       const hash = window.location.hash;
       const params = new URLSearchParams(hash.replace('#', ''));
       const accessToken = params.get('access_token');
 
       if (accessToken) {
-        // Supabase PKCE redirect — set the session from the recovery token
         const refreshToken = params.get('refresh_token') || '';
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
@@ -38,7 +52,7 @@ export default function ResetPasswordPage() {
         }
       }
 
-      // Check URL query params (direct link with token_hash)
+      // 3. query params (?token_hash=xxx) — direct OTP link
       const urlParams = new URLSearchParams(window.location.search);
       const tokenHash = urlParams.get('token_hash');
       const type = urlParams.get('type');
@@ -54,11 +68,17 @@ export default function ResetPasswordPage() {
         }
       }
 
-      // No valid token found
-      setError('Invalid or expired reset link. Please request a new one.');
+      // No valid token found — wait a beat for onAuthStateChange to fire
+      setTimeout(() => {
+        if (!isReady) {
+          setError('Invalid or expired reset link. Please request a new one.');
+        }
+      }, 2000);
     };
 
     init();
+
+    return () => subscription.unsubscribe();
   }, [supabase]);
 
   const handleSubmit = async (e: FormEvent) => {
