@@ -2,13 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import {
-  HiOutlineArrowLeft,
-  HiOutlinePlus,
-  HiOutlineTrash,
-  HiOutlineExclamationCircle,
-} from 'react-icons/hi2'
+import Link from 'next/link'\nimport ImageUploader from '@/components/admin/ImageUploader'\n\nimport { HiOutlineArrowLeft, HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationCircle } from 'react-icons/hi2'
+import ImageUploader from '@/components/admin/ImageUploader'
 
 interface VariantEntry {
   label: string
@@ -36,7 +31,7 @@ export default function AdminProductNew() {
   const [variants, setVariants] = useState<VariantEntry[]>([])
   const [description, setDescription] = useState('')
   const [features, setFeatures] = useState<string[]>([''])
-  const [images, setImages] = useState<string[]>([''])
+  const [images, setImages] = useState<string[]>([])
   const [inventory, setInventory] = useState('')
   const [featured, setFeatured] = useState(false)
   const [forMicroscopyOnly, setForMicroscopyOnly] = useState(false)
@@ -412,40 +407,9 @@ export default function AdminProductNew() {
 
         {/* Images */}
         <section className="rounded-xl border border-zinc-800 bg-[#0f0f0f] p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Images</h2>
-            <button
-              type="button"
-              onClick={addImage}
-              className="inline-flex items-center gap-1 text-xs text-[#FFD700] hover:text-[#FFD700]/80 transition-colors"
-            >
-              <HiOutlinePlus className="h-3.5 w-3.5" />
-              Add Image URL
-            </button>
-          </div>
-          <p className="text-xs text-zinc-500">Enter image URLs (v0.1 — no file upload)</p>
-          <div className="space-y-2">
-            {images.map((image, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={image}
-                  onChange={(e) => updateImage(index, e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="flex-1 px-3 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#FFD700] focus:border-[#FFD700]"
-                />
-                {images.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="text-zinc-500 hover:text-red-400 transition-colors"
-                  >
-                    <HiOutlineTrash className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+          <h2 className="text-sm font-semibold text-white">Images</h2>
+          <p className="text-xs text-zinc-500">Upload product photos (max 10, 5MB each)</p>
+          <ImageUploader images={images} onImagesChange={setImages} maxImages={10} maxSizeMB={5} />
         </section>
 
         {/* Tags */}

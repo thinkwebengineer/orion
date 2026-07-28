@@ -6,3 +6,6 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .hermes
+supabase/.temp/
+supabase/.temp/
+.env.vercel*
