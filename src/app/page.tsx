@@ -2,17 +2,16 @@ import ComingSoon from '@/app/coming-soon/page';
 import ShopPage from '@/app/shop/page';
 
 export default function RootPage() {
-  // In development, show shop for easier local testing
+  // Determine environment: on server, check Vercel env; on client, check hostname or Vercel env if available
+  let isPreview = false;
   if (typeof window === 'undefined') {
-    // During SSR, check Vercel env
-    if (process.env.VERCEL_ENV === 'preview') {
-      return <ShopPage />;
-    }
-    // Production (or any other env) shows coming soon
-    return <ComingSoon />;
+    // Server-side
+    isPreview = process.env.VERCEL_ENV === 'preview';
+  } else {
+    // Client-side: we can't rely on process.env, but we can check the hostname
+    // Preview deployments are on *.vercel.app, production on custom domain
+    const hostname = window.location.hostname;
+    isPreview = hostname.endsWith('.vercel.app') && !hostname.includes('goldenmycology.com');
   }
-  // On client, we can also check window.location.hostname if needed, but relying on env is fine
-  // This component will be rendered on both server and client; we already handled SSR.
-  // For safety, fallback to coming soon.
-  return <ComingSoon />;
+  return isPreview ? <ShopPage /> : <ComingSoon />;
 }
