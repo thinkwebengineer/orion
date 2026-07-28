@@ -1,10 +1,18 @@
-import { redirect } from 'next/navigation'
+import ComingSoon from '@/components/coming-soon';
+import ShopPage from '@/app/shop/page';
 
-export default function HomePage() {
-  // On Vercel production, show coming soon
-  if (process.env.VERCEL_ENV === 'production') {
-    redirect('/coming-soon')
+export default function RootPage() {
+  // In development, show shop for easier local testing
+  if (typeof window === 'undefined') {
+    // During SSR, check Vercel env
+    if (process.env.VERCEL_ENV === 'preview') {
+      return <ShopPage />;
+    }
+    // Production (or any other env) shows coming soon
+    return <ComingSoon />;
   }
-  // On preview/dev, show the full home page (handled by layout)
-  redirect('/shop')
+  // On client, we can also check window.location.hostname if needed, but relying on env is fine
+  // This component will be rendered on both server and client; we already handled SSR.
+  // For safety, fallback to coming soon.
+  return <ComingSoon />;
 }
